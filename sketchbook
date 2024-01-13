@@ -1,1 +1,79 @@
 
+/*
+ * https://wolles-elektronikkiste.de/en/using-freertos-with-esp32-and-arduino#binary_semaphores
+ * 
+ * Passing parameters to tasks
+ * One-time Passing as *pvParameters
+ * 
+ */
+#define LED1 32
+#define LED2 33
+#define audio1 25
+#define audio2 26
+#define SAMPLES 1024   
+#define SAMPLING_FREQUENCY 40000
+int pin_audio;
+double vReal [SAMPLES];
+double vReal1[SAMPLES];
+double vReal2[SAMPLES];
+unsigned long newTime, oldTime;
+unsigned int sampling_period_us;
+unsigned long microseconds;
+struct genericBlink{
+    int pin;
+    int period;
+    int pin_audio;
+    double vReal[SAMPLES];
+};
+genericBlink ledBlink1 = {LED1, 500, audio1, vReal1[SAMPLES]};
+genericBlink ledBlink2 = {LED2, 500, audio2, vReal2[SAMPLES]};
+void setup() {
+  Serial.begin(115200);
+  Serial.print(__FILE__);
+  pinMode(LED1, OUTPUT);  
+  pinMode(LED2, OUTPUT);      
+  pinMode(audio1, INPUT);  
+  pinMode(audio2, INPUT);   
+    xTaskCreate(
+        &blink,      // Function name of the task
+        "Blink 1",   // Name of the task (e.g. for debugging)
+        2048,        // Stack size (bytes)
+        (void*) &ledBlink1,  // Parameter to pass
+        1,           // Task priority
+        NULL         // Task handle
+    );
+    xTaskCreate(
+        &blink,      // Function name of the task
+        "Blink 2",   // Name of the task (e.g. for debugging)
+        2048,        // Stack size (bytes)
+        (void*) &ledBlink2,  // Parameter to pass
+        1,           // Task priority
+        NULL         // Task handle
+    );
+      sampling_period_us = round(1000000 * (1.0 / SAMPLING_FREQUENCY));
+}
+void blink(void *ledx){
+    genericBlink *ledBlink = (genericBlink *) ledx;
+    pinMode(ledBlink->pin, OUTPUT);
+    while(1){
+        digitalWrite(ledBlink->pin, HIGH);
+        delay(ledBlink->period);
+        digitalWrite(ledBlink->pin, LOW);
+        delay(ledBlink->period);
+    }
+        for (int i = 0; i < SAMPLES; i++) {
+          newTime  = micros();
+          vReal[i] = analogRead(pin_audio); // Using pin number for ADC port ici GPIO4 
+          while ((micros() - newTime) < sampling_period_us) { /* do nothing to wait */ }
+        }
+      
+}
+void loop(){
+    for (int i = 0; i < SAMPLES; i++) {
+    Serial.print("son_1:");
+    Serial.print( vReal1[i]);
+    Serial.print(",");
+    Serial.print("son_2:");
+    Serial.println( vReal2[i]);
+  }  
+  }
